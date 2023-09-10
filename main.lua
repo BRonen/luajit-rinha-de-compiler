@@ -45,13 +45,51 @@ function map (tbl, f)
     return t
 end
 
-local binary_operators = {
-    Lt = '<',
-    Gt = '>',
-    Sub = '-',
-    Add = '+',
-    Mul = '*',
-    Div = '/',
+local compile_binary_operators = {
+    Lt = function (expression)
+        return compile_expression(expression.lhs) .. '<' .. compile_expression(expression.rhs)
+    end,
+    Sub = function (expression)
+        return compile_expression(expression.lhs) .. '-' .. compile_expression(expression.rhs)
+    end,
+    Add = function (expression)
+        local operator = (expression.lhs.kind == 'Str' or expression.rhs.kind == 'Str') and '..' or '+'
+        
+        return compile_expression(expression.lhs) .. operator .. compile_expression(expression.rhs)
+    end,
+    Mul = function (expression) 
+        return compile_expression(expression.lhs) .. '*' .. compile_expression(expression.rhs)
+    end,
+    Div = function (expression) 
+        return compile_expression(expression.lhs) .. '/' .. compile_expression(expression.rhs)
+    end,
+    Rem = function (expression) 
+        return 'math.fmod(' .. compile_expression(expression.lhs) .. ', ' .. compile_expression(expression.rhs) .. ')'
+    end,
+    Eq = function (expression) 
+        return compile_expression(expression.lhs) .. '==' .. compile_expression(expression.rhs)
+    end,
+    Neq = function (expression) 
+        return compile_expression(expression.lhs) .. '~=' .. compile_expression(expression.rhs)
+    end,
+    Lt = function (expression) 
+        return compile_expression(expression.lhs) .. '<' .. compile_expression(expression.rhs)
+    end,
+    Gt = function (expression) 
+        return compile_expression(expression.lhs) .. '>' .. compile_expression(expression.rhs)
+    end,
+    Lte = function (expression) 
+        return compile_expression(expression.lhs) .. '<=' .. compile_expression(expression.rhs)
+    end,
+    Gte = function (expression) 
+        return compile_expression(expression.lhs) .. '>=' .. compile_expression(expression.rhs)
+    end,
+    And = function (expression) 
+        return compile_expression(expression.lhs) .. 'and' .. compile_expression(expression.rhs)
+    end,
+    Or = function (expression) 
+        return compile_expression(expression.lhs) .. 'or' .. compile_expression(expression.rhs)
+    end,
 }
 
 local compile_expression_by_kind = {
@@ -84,7 +122,7 @@ local compile_expression_by_kind = {
         return result .. ' \nend'
     end,
     Binary = function (expression)
-        return compile_expression(expression.lhs) .. ' ' ..  binary_operators[expression.op] .. ' ' .. compile_expression(expression.rhs)
+        return compile_binary_operators[expression.op](expression)
     end,
     Var = function (expression)
         return expression.text
@@ -105,21 +143,17 @@ local compile_expression_by_kind = {
 }
 
 function compile_expression (expression, args)
-    local next = ''
-
-    if(expression.next) then
-        next = compile_expression(expression.next)
-    end
+    local next = expression.next and compile_expression(expression.next) or ''
 
     local compiler_by_kind = compile_expression_by_kind[expression.kind]
 
     if (compiler_by_kind) then
         return compiler_by_kind(expression, args) .. next
-    else
-        return '[not implemented]' .. next
     end
+
+    return '[]'
 end
 
-local fib_json = get_ast('../files/fib.json')
+local fib_json = get_ast('/var/rinha/source.rinha.json')
 
 print(compile_expression(fib_json))

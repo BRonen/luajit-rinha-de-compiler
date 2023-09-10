@@ -1,11 +1,10 @@
-FROM ubuntu
+FROM akorn/luarocks:luajit2.1-alpine
 
 WORKDIR /home
 
-RUN apt update && apt install bash luajit luarocks -y
-
+RUN apk add gcc musl-dev
 RUN luarocks install lua-cjson
 
 COPY . .
 
-ENTRYPOINT [ "bash" ]
+ENTRYPOINT [ "lua", "main.lua" ]
