@@ -1,0 +1,7 @@
+services:
+  main:
+    build: .
+    volumes:
+      - ${PWD}:/home
+      - ${PWD}/rinha-de-compiler/files:/var/rinha/
+      - ${PWD}/tests:/var/rinha/

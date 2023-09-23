@@ -3,3 +3,4 @@
 /lua_modules
 /.luarocks
 /output.lua
+/tests/source.rinha
