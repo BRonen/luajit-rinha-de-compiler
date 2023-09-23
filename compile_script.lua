@@ -208,11 +208,11 @@ local compile_expression_by_kind = {
         return 'local ' .. expression.name.text .. ' = ' .. compile_expression(expression.value, merge_tables(context, {is_returning = false})) .. '\n'
     end,
     If = function (expression, context)
-        local result = 'if (' .. compile_expression(expression.condition) .. ') then\n ' ..
+        local result = 'if (' .. compile_expression(expression.condition) .. ') then\n' ..
             compile_expression(expression['then'], context)
 
         if(expression.otherwise) then
-            result = result .. '\nelse\n ' .. compile_expression(expression.otherwise, context)
+            result = result .. '\nelse\n' .. compile_expression(expression.otherwise, context)
         end
 
         return result .. ' \nend'
@@ -222,7 +222,7 @@ local compile_expression_by_kind = {
 
         if(context and context.is_pure and context.is_returning) then
             return 'local result = ' .. result ..
-                '\n call_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = result\n' .. 
+                '\ncall_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = result\n' .. 
                 'return result'
         elseif(context and context.is_returning) then
             return 'return ' .. result
@@ -232,7 +232,7 @@ local compile_expression_by_kind = {
     end,
     Var = function (expression, context)
         if(context and context.is_returning and context.is_pure) then
-            return '\n call_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = ' .. expression.text ..
+            return '\ncall_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = ' .. expression.text ..
                 '\nreturn ' .. expression.text
         end
         if(context and context.is_returning) then return 'return ' .. expression.text end
@@ -251,7 +251,7 @@ local compile_expression_by_kind = {
         return '"' .. expression.value .. '"'
     end,
     Tuple = function (expression, context)
-        if(context and context.is_returning) then return 'return ffi.new("tuple_t", {' .. expression.first .. ', ' .. expression.second .. '})' end
+        if(context and context.is_returning) then return 'return ffi.new("tuple_t", {' .. expression.first .. ', ' .. expression.second .. '})\n' end
         return 'ffi.new("tuple_t", {' .. compile_expression(expression.first) .. ', ' .. compile_expression(expression.second) .. '})'
     end,
     First = function (expression, context)
@@ -261,7 +261,11 @@ local compile_expression_by_kind = {
         return '(' .. compile_expression(expression.value) .. ').second'
     end,
     Print = function (expression)
-        return 'print(' .. compile_expression(expression.value) .. ')\n '
+        return 'print(' .. compile_expression(expression.value) .. ')\n'
+    end,
+    Bool = function (expression, context)
+        if(context and context.is_returning) then return 'return ' .. tostring(expression.value) end
+        return tostring(expression.value)
     end,
 }
 
@@ -274,7 +278,8 @@ function compile_expression (expression, context)
         return compiler_by_kind(expression, context) .. next
     end
 
-    return '[not implemented]'
+    tprint(expression)
+    return '[not implemented] {}'
 end
 
 function compile_script (script, context)

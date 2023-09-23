@@ -1,1 +1,543 @@
-{"name":"source.rinha","expression":{"kind":"Let","name":{"text":"fib","location":{"start":4,"end":7,"filename":"source.rinha"}},"value":{"kind":"Function","parameters":[{"text":"n","location":{"start":14,"end":15,"filename":"source.rinha"}}],"value":{"kind":"Var","text":"n","location":{"start":24,"end":25,"filename":"source.rinha"}},"location":{"start":10,"end":27,"filename":"source.rinha"}},"next":{"kind":"Let","name":{"text":"_","location":{"start":33,"end":34,"filename":"source.rinha"}},"value":{"kind":"Print","value":{"kind":"Str","value":"wasd","location":{"start":43,"end":49,"filename":"source.rinha"}},"location":{"start":37,"end":50,"filename":"source.rinha"}},"next":{"kind":"Print","value":{"kind":"Call","callee":{"kind":"Var","text":"fib","location":{"start":58,"end":61,"filename":"source.rinha"}},"arguments":[{"kind":"Int","value":2,"location":{"start":62,"end":63,"filename":"source.rinha"}}],"location":{"start":58,"end":64,"filename":"source.rinha"}},"location":{"start":52,"end":65,"filename":"source.rinha"}},"location":{"start":29,"end":65,"filename":"source.rinha"}},"location":{"start":0,"end":65,"filename":"source.rinha"}},"location":{"start":0,"end":65,"filename":"source.rinha"}}
+{
+    "name": "source.rinha",
+    "expression": {
+        "kind": "Let",
+        "name": {
+            "text": "id",
+            "location": {
+                "start": 4,
+                "end": 6,
+                "filename": "source.rinha"
+            }
+        },
+        "value": {
+            "kind": "Function",
+            "parameters": [
+                {
+                    "text": "n",
+                    "location": {
+                        "start": 13,
+                        "end": 14,
+                        "filename": "source.rinha"
+                    }
+                }
+            ],
+            "value": {
+                "kind": "Var",
+                "text": "n",
+                "location": {
+                    "start": 20,
+                    "end": 21,
+                    "filename": "source.rinha"
+                }
+            },
+            "location": {
+                "start": 9,
+                "end": 22,
+                "filename": "source.rinha"
+            }
+        },
+        "next": {
+            "kind": "Let",
+            "name": {
+                "text": "is_less_than_five",
+                "location": {
+                    "start": 28,
+                    "end": 45,
+                    "filename": "source.rinha"
+                }
+            },
+            "value": {
+                "kind": "Function",
+                "parameters": [
+                    {
+                        "text": "n",
+                        "location": {
+                            "start": 52,
+                            "end": 53,
+                            "filename": "source.rinha"
+                        }
+                    }
+                ],
+                "value": {
+                    "kind": "If",
+                    "condition": {
+                        "kind": "Binary",
+                        "lhs": {
+                            "kind": "Var",
+                            "text": "n",
+                            "location": {
+                                "start": 65,
+                                "end": 66,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "op": "Lt",
+                        "rhs": {
+                            "kind": "Int",
+                            "value": 5,
+                            "location": {
+                                "start": 69,
+                                "end": 70,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "location": {
+                            "start": 65,
+                            "end": 70,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "then": {
+                        "kind": "Bool",
+                        "value": true,
+                        "location": {
+                            "start": 78,
+                            "end": 82,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "otherwise": {
+                        "kind": "Bool",
+                        "value": false,
+                        "location": {
+                            "start": 98,
+                            "end": 103,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "location": {
+                        "start": 62,
+                        "end": 107,
+                        "filename": "source.rinha"
+                    }
+                },
+                "location": {
+                    "start": 48,
+                    "end": 109,
+                    "filename": "source.rinha"
+                }
+            },
+            "next": {
+                "kind": "Let",
+                "name": {
+                    "text": "better_is_less_than_five",
+                    "location": {
+                        "start": 115,
+                        "end": 139,
+                        "filename": "source.rinha"
+                    }
+                },
+                "value": {
+                    "kind": "Function",
+                    "parameters": [
+                        {
+                            "text": "n",
+                            "location": {
+                                "start": 146,
+                                "end": 147,
+                                "filename": "source.rinha"
+                            }
+                        }
+                    ],
+                    "value": {
+                        "kind": "Binary",
+                        "lhs": {
+                            "kind": "Var",
+                            "text": "n",
+                            "location": {
+                                "start": 156,
+                                "end": 157,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "op": "Lt",
+                        "rhs": {
+                            "kind": "Int",
+                            "value": 5,
+                            "location": {
+                                "start": 160,
+                                "end": 161,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "location": {
+                            "start": 156,
+                            "end": 161,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "location": {
+                        "start": 142,
+                        "end": 163,
+                        "filename": "source.rinha"
+                    }
+                },
+                "next": {
+                    "kind": "Let",
+                    "name": {
+                        "text": "print_hello",
+                        "location": {
+                            "start": 169,
+                            "end": 180,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "value": {
+                        "kind": "Function",
+                        "parameters": [],
+                        "value": {
+                            "kind": "Print",
+                            "value": {
+                                "kind": "Str",
+                                "value": "hello",
+                                "location": {
+                                    "start": 202,
+                                    "end": 209,
+                                    "filename": "source.rinha"
+                                }
+                            },
+                            "location": {
+                                "start": 196,
+                                "end": 210,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "location": {
+                            "start": 183,
+                            "end": 212,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "next": {
+                        "kind": "Let",
+                        "name": {
+                            "text": "print_world",
+                            "location": {
+                                "start": 218,
+                                "end": 229,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "value": {
+                            "kind": "Function",
+                            "parameters": [],
+                            "value": {
+                                "kind": "Print",
+                                "value": {
+                                    "kind": "Str",
+                                    "value": "world",
+                                    "location": {
+                                        "start": 251,
+                                        "end": 258,
+                                        "filename": "source.rinha"
+                                    }
+                                },
+                                "location": {
+                                    "start": 245,
+                                    "end": 259,
+                                    "filename": "source.rinha"
+                                }
+                            },
+                            "location": {
+                                "start": 232,
+                                "end": 261,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "next": {
+                            "kind": "Let",
+                            "name": {
+                                "text": "_",
+                                "location": {
+                                    "start": 268,
+                                    "end": 269,
+                                    "filename": "source.rinha"
+                                }
+                            },
+                            "value": {
+                                "kind": "Print",
+                                "value": {
+                                    "kind": "Call",
+                                    "callee": {
+                                        "kind": "Var",
+                                        "text": "id",
+                                        "location": {
+                                            "start": 278,
+                                            "end": 280,
+                                            "filename": "source.rinha"
+                                        }
+                                    },
+                                    "arguments": [
+                                        {
+                                            "kind": "Str",
+                                            "value": "something",
+                                            "location": {
+                                                "start": 281,
+                                                "end": 292,
+                                                "filename": "source.rinha"
+                                            }
+                                        }
+                                    ],
+                                    "location": {
+                                        "start": 278,
+                                        "end": 293,
+                                        "filename": "source.rinha"
+                                    }
+                                },
+                                "location": {
+                                    "start": 272,
+                                    "end": 294,
+                                    "filename": "source.rinha"
+                                }
+                            },
+                            "next": {
+                                "kind": "Let",
+                                "name": {
+                                    "text": "_",
+                                    "location": {
+                                        "start": 300,
+                                        "end": 301,
+                                        "filename": "source.rinha"
+                                    }
+                                },
+                                "value": {
+                                    "kind": "Print",
+                                    "value": {
+                                        "kind": "Call",
+                                        "callee": {
+                                            "kind": "Var",
+                                            "text": "is_less_than_five",
+                                            "location": {
+                                                "start": 310,
+                                                "end": 327,
+                                                "filename": "source.rinha"
+                                            }
+                                        },
+                                        "arguments": [
+                                            {
+                                                "kind": "Int",
+                                                "value": 4,
+                                                "location": {
+                                                    "start": 328,
+                                                    "end": 329,
+                                                    "filename": "source.rinha"
+                                                }
+                                            }
+                                        ],
+                                        "location": {
+                                            "start": 310,
+                                            "end": 330,
+                                            "filename": "source.rinha"
+                                        }
+                                    },
+                                    "location": {
+                                        "start": 304,
+                                        "end": 331,
+                                        "filename": "source.rinha"
+                                    }
+                                },
+                                "next": {
+                                    "kind": "Let",
+                                    "name": {
+                                        "text": "_",
+                                        "location": {
+                                            "start": 337,
+                                            "end": 338,
+                                            "filename": "source.rinha"
+                                        }
+                                    },
+                                    "value": {
+                                        "kind": "Print",
+                                        "value": {
+                                            "kind": "Call",
+                                            "callee": {
+                                                "kind": "Var",
+                                                "text": "is_less_than_five",
+                                                "location": {
+                                                    "start": 347,
+                                                    "end": 364,
+                                                    "filename": "source.rinha"
+                                                }
+                                            },
+                                            "arguments": [
+                                                {
+                                                    "kind": "Int",
+                                                    "value": 5,
+                                                    "location": {
+                                                        "start": 365,
+                                                        "end": 366,
+                                                        "filename": "source.rinha"
+                                                    }
+                                                }
+                                            ],
+                                            "location": {
+                                                "start": 347,
+                                                "end": 367,
+                                                "filename": "source.rinha"
+                                            }
+                                        },
+                                        "location": {
+                                            "start": 341,
+                                            "end": 368,
+                                            "filename": "source.rinha"
+                                        }
+                                    },
+                                    "next": {
+                                        "kind": "Let",
+                                        "name": {
+                                            "text": "_",
+                                            "location": {
+                                                "start": 374,
+                                                "end": 375,
+                                                "filename": "source.rinha"
+                                            }
+                                        },
+                                        "value": {
+                                            "kind": "Print",
+                                            "value": {
+                                                "kind": "Call",
+                                                "callee": {
+                                                    "kind": "Var",
+                                                    "text": "better_is_less_than_five",
+                                                    "location": {
+                                                        "start": 384,
+                                                        "end": 408,
+                                                        "filename": "source.rinha"
+                                                    }
+                                                },
+                                                "arguments": [
+                                                    {
+                                                        "kind": "Int",
+                                                        "value": 89374,
+                                                        "location": {
+                                                            "start": 409,
+                                                            "end": 414,
+                                                            "filename": "source.rinha"
+                                                        }
+                                                    }
+                                                ],
+                                                "location": {
+                                                    "start": 384,
+                                                    "end": 415,
+                                                    "filename": "source.rinha"
+                                                }
+                                            },
+                                            "location": {
+                                                "start": 378,
+                                                "end": 416,
+                                                "filename": "source.rinha"
+                                            }
+                                        },
+                                        "next": {
+                                            "kind": "Let",
+                                            "name": {
+                                                "text": "_",
+                                                "location": {
+                                                    "start": 422,
+                                                    "end": 423,
+                                                    "filename": "source.rinha"
+                                                }
+                                            },
+                                            "value": {
+                                                "kind": "Call",
+                                                "callee": {
+                                                    "kind": "Var",
+                                                    "text": "print_hello",
+                                                    "location": {
+                                                        "start": 426,
+                                                        "end": 437,
+                                                        "filename": "source.rinha"
+                                                    }
+                                                },
+                                                "arguments": [],
+                                                "location": {
+                                                    "start": 426,
+                                                    "end": 439,
+                                                    "filename": "source.rinha"
+                                                }
+                                            },
+                                            "next": {
+                                                "kind": "Call",
+                                                "callee": {
+                                                    "kind": "Var",
+                                                    "text": "print_world",
+                                                    "location": {
+                                                        "start": 441,
+                                                        "end": 452,
+                                                        "filename": "source.rinha"
+                                                    }
+                                                },
+                                                "arguments": [],
+                                                "location": {
+                                                    "start": 441,
+                                                    "end": 454,
+                                                    "filename": "source.rinha"
+                                                }
+                                            },
+                                            "location": {
+                                                "start": 418,
+                                                "end": 454,
+                                                "filename": "source.rinha"
+                                            }
+                                        },
+                                        "location": {
+                                            "start": 370,
+                                            "end": 454,
+                                            "filename": "source.rinha"
+                                        }
+                                    },
+                                    "location": {
+                                        "start": 333,
+                                        "end": 454,
+                                        "filename": "source.rinha"
+                                    }
+                                },
+                                "location": {
+                                    "start": 296,
+                                    "end": 454,
+                                    "filename": "source.rinha"
+                                }
+                            },
+                            "location": {
+                                "start": 264,
+                                "end": 454,
+                                "filename": "source.rinha"
+                            }
+                        },
+                        "location": {
+                            "start": 214,
+                            "end": 454,
+                            "filename": "source.rinha"
+                        }
+                    },
+                    "location": {
+                        "start": 165,
+                        "end": 454,
+                        "filename": "source.rinha"
+                    }
+                },
+                "location": {
+                    "start": 111,
+                    "end": 454,
+                    "filename": "source.rinha"
+                }
+            },
+            "location": {
+                "start": 24,
+                "end": 454,
+                "filename": "source.rinha"
+            }
+        },
+        "location": {
+            "start": 0,
+            "end": 454,
+            "filename": "source.rinha"
+        }
+    },
+    "location": {
+        "start": 0,
+        "end": 454,
+        "filename": "source.rinha"
+    }
+}
