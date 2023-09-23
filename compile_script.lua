@@ -251,14 +251,14 @@ local compile_expression_by_kind = {
         return '"' .. expression.value .. '"'
     end,
     Tuple = function (expression, context)
-        if(context and context.is_returning) then return 'return {' .. expression.first .. ', ' .. expression.second .. '}' end
-        return '{' .. compile_expression(expression.first) .. ', ' .. compile_expression(expression.second) .. '}'
+        if(context and context.is_returning) then return 'return ffi.new("tuple_t", {' .. expression.first .. ', ' .. expression.second .. '})' end
+        return 'ffi.new("tuple_t", {' .. compile_expression(expression.first) .. ', ' .. compile_expression(expression.second) .. '})'
     end,
     First = function (expression, context)
-        return '(' .. compile_expression(expression.value) .. ')[1]'
+        return '(' .. compile_expression(expression.value) .. ').first'
     end,
     Second = function (expression, context)
-        return '(' .. compile_expression(expression.value) .. ')[2]'
+        return '(' .. compile_expression(expression.value) .. ').second'
     end,
     Print = function (expression)
         return 'print(' .. compile_expression(expression.value) .. ')\n '
@@ -278,7 +278,7 @@ function compile_expression (expression, context)
 end
 
 function compile_script (script, context)
-    return "local call_memoization = {}\nlocal print = function (...)\nprint(unpack({...}))\nreturn unpack({...})\nend\n" ..
+    return "local ffi = require(\"ffi\")\nlocal call_memoization = {}\nffi.cdef(\"typedef struct { uint32_t first, second; } tuple_t;\")\nlocal print = function (...)\nprint(unpack({...}))\nreturn unpack({...})\nend\n" ..
         compile_expression(script.expression)
 end
 

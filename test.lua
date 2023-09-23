@@ -18,10 +18,20 @@ function compare_sources(compiled_source, target_source_lines)
     return true, compiled_source, table.concat(target_source_lines, "\n")
 end
 
+local default_headers = {
+    "local ffi = require(\"ffi\")",
+    "local call_memoization = {}",
+    "ffi.cdef(\"typedef struct { uint32_t first, second; } tuple_t;\")",
+    "local print = function (...)",
+    "print(unpack({...}))",
+    "return unpack({...})",
+    "end",
+}
+
 local tests = {
     should_print_hello_world = function ()
         local target_source = {
-            "local call_memoization = {}",
+            unpack(default_headers),
             "print(\"Hello world\")",
         }
 
@@ -32,7 +42,7 @@ local tests = {
     end,
     should_print_tuple_values = function ()
         local target_source = {
-            "local call_memoization = {}",
+            unpack(default_headers),
             "local t = {3, 4}",
             "local _ = print((t)[1])",
             " ",
