@@ -187,7 +187,16 @@ local compile_expression_by_kind = {
             memoization_header ..
             compile_expression(
                 expression.value,
-                merge_tables(flags, merge_tables(context, {parameters = expression.parameters}))
+                merge_tables(
+                    flags,
+                    merge_tables(
+                        context,
+                        merge_tables(
+                            { parameters = expression.parameters },
+                            { is_returning = true }
+                        )
+                    )
+                )
             ) ..
             '\nend\n\n'
     end,
@@ -200,10 +209,10 @@ local compile_expression_by_kind = {
     end,
     If = function (expression, context)
         local result = 'if (' .. compile_expression(expression.condition) .. ') then\n ' ..
-            compile_expression(expression['then'], merge_tables(context, {is_returning = true}))
+            compile_expression(expression['then'], context)
 
         if(expression.otherwise) then
-            result = result .. '\nelse\n ' .. compile_expression(expression.otherwise, merge_tables(context, {is_returning = true}))
+            result = result .. '\nelse\n ' .. compile_expression(expression.otherwise, context)
         end
 
         return result .. ' \nend'
@@ -269,7 +278,8 @@ function compile_expression (expression, context)
 end
 
 function compile_script (script, context)
-    return 'local call_memoization = {}\n\n' .. compile_expression(script.expression)
+    return "local call_memoization = {}\nlocal print = function (...)\nprint(unpack({...}))\nreturn unpack({...})\nend\n" ..
+        compile_expression(script.expression)
 end
 
 return {
