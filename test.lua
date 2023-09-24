@@ -34,12 +34,11 @@ end
 
 local default_headers = {
     "local ffi = require(\"ffi\")",
-    "local call_memoization = {}",
-    "ffi.cdef(\"typedef struct { uint32_t first, second; } tuple_t;\")",
-    "local print = function (...)",
-    "print(unpack({...}))",
-    "return unpack({...})",
+    "local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (...)",
+    "    print(unpack({...}))",
+    "    return unpack({...})",
     "end",
+    "ffi.cdef(\"typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;\")",
 }
 
 local tests = {
@@ -58,10 +57,24 @@ local tests = {
     should_print_tuple_values = function ()
         local target_source = sum_tables(
             default_headers, {
-                "local t = ffi.new(\"tuple_t\", {3, 4})",
-                "local _ = print((t).first)",
-                "local _ = print((t).second)",
-                "print((ffi.new(\"tuple_t\", {4, 5})).second)"
+                "local optimized_tuple = { first = \"wasd\", second = 12 }",
+                "local tuple = ffi_new(\"INTERNAL_INTEGER_PAIR\", {3, 4})",
+                "function get_optimized_tuple(n, m)",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"get_optimized_tuple\" .. n .. \"-\" .. m]) then return INTERNAL_MEMOIZATION_TABLE[\"get_optimized_tuple\" .. n .. \"-\" .. m] end",
+                "local INTERNAL_MEMOIZED_VALUE = { first = n, second = m }",
+                "INTERNAL_MEMOIZATION_TABLE[\"get_optimized_tuple\" .. n .. \"-\" .. m] = INTERNAL_MEMOIZED_VALUE",
+                "return INTERNAL_MEMOIZED_VALUE",
+                "end",
+                "function get_tuple()",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"get_tuple\"]) then return INTERNAL_MEMOIZATION_TABLE[\"get_tuple\"] end",
+                "local INTERNAL_MEMOIZED_VALUE = { first = 7, second = \"8\" }",
+                "INTERNAL_MEMOIZATION_TABLE[\"get_tuple\"] = INTERNAL_MEMOIZED_VALUE",
+                "return INTERNAL_MEMOIZED_VALUE",
+                "end",
+                "local _ = print((get_optimized_tuple(5, 6)).first)",
+                "local _ = print((get_optimized_tuple(5, 6)).second)",
+                "local _ = print((get_tuple()).first)",
+                "print((get_tuple()).second)",
             }
         )
 
@@ -74,12 +87,12 @@ local tests = {
         local target_source = sum_tables(
             default_headers, {
                 "function id(n)",
-                "if(call_memoization[\"id\" .. n]) then return call_memoization[\"id\" .. n] end",
-                "call_memoization[\"id\" .. n] = n",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"id\" .. n]) then return INTERNAL_MEMOIZATION_TABLE[\"id\" .. n] end",
+                "INTERNAL_MEMOIZATION_TABLE[\"id\" .. n] = n",
                 "return n",
                 "end",
                 "function is_less_than_five(n)",
-                "if(call_memoization[\"is_less_than_five\" .. n]) then return call_memoization[\"is_less_than_five\" .. n] end",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"is_less_than_five\" .. n]) then return INTERNAL_MEMOIZATION_TABLE[\"is_less_than_five\" .. n] end",
                 "if (n<5) then",
                 "return true",
                 "else",
@@ -87,10 +100,10 @@ local tests = {
                 "end",
                 "end",
                 "function better_is_less_than_five(n)",
-                "if(call_memoization[\"better_is_less_than_five\" .. n]) then return call_memoization[\"better_is_less_than_five\" .. n] end",
-                "local result = n<5",
-                "call_memoization[\"better_is_less_than_five\" .. n] = result",
-                "return result",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n]) then return INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n] end",
+                "local INTERNAL_MEMOIZED_VALUE = n<5",
+                "INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n] = INTERNAL_MEMOIZED_VALUE",
+                "return INTERNAL_MEMOIZED_VALUE",
                 "end",
                 "function print_hello()",
                 "print(\"hello\")",
