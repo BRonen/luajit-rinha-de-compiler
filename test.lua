@@ -157,6 +157,45 @@ local tests = {
 
         return compare_sources(compiled_source, target_source)
     end,
+    should_run_conditionals_as_expressions = function ()
+        local target_source = sum_tables(
+            default_headers, {
+                "function rec(n, acc)",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc]) then return INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] end",
+                "if (( acc == n )) then",
+                "INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] = acc",
+                "return acc",
+                "else",
+                "local INTERNAL_MEMOIZED_VALUE = ( rec(n, ( acc + 1 )) + 0 )",
+                "INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] = INTERNAL_MEMOIZED_VALUE",
+                "return INTERNAL_MEMOIZED_VALUE",
+                "end",
+                "end",
+                "function rec_tail_call(n, acc)",
+                "if(INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc]) then return INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc] end",
+                "if (( acc == n )) then",
+                "INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc] = acc",
+                "return acc",
+                "else",
+                "return rec_tail_call(n, ( acc + 1 ))",
+                "end",
+                "end",
+                "local a = ( 123 == ( 124 - 1 ) ) and (function()",
+                "local _ = print(123)",
+                "return true",
+                "end)() or (function()",
+                "return false",
+                "end)()",
+                "local _ = print(rec_tail_call(40000, 0))",
+                "print(a)",
+            }
+        )
+
+        local source_ast = get_file_contents('./tests/recursion.json')
+        local compiled_source = module.compile_script(source_ast)
+
+        return compare_sources(compiled_source, target_source)
+    end
 }
 
 for k, v in pairs(tests) do

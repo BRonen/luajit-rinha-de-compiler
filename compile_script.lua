@@ -193,10 +193,7 @@ local compile_expression_by_kind = {
                     flags,
                     merge_tables(
                         context,
-                        merge_tables(
-                            { parameters = expression.parameters },
-                            { is_returning = true }
-                        )
+                        { parameters = expression.parameters, is_returning = true }
                     )
                 )
             ) ..
@@ -207,9 +204,21 @@ local compile_expression_by_kind = {
         if(expression.value.kind == 'Function') then
             return compile_expression(expression.value, merge_tables(context, {name = expression.name.text}))
         end
-        return 'local ' .. expression.name.text .. ' = ' .. compile_expression(expression.value, merge_tables(context, {is_returning = false})) .. '\n'
+        return 'local ' .. expression.name.text .. ' = ' .. compile_expression(expression.value, merge_tables(context, {is_returning = false, is_variable = true})) .. '\n'
     end,
     If = function (expression, context)
+        if(context.is_variable) then
+            local result = compile_expression(expression.condition) .. ' and (function()\n' .. compile_expression(expression['then'], merge_tables(context, {is_returning = true}))
+
+            if(expression.otherwise) then
+                result = result .. '\nend)() or (function()\n' .. compile_expression(expression.otherwise, merge_tables(context, {is_returning = true})) .. '\nend)()'
+            else
+                result = result .. '\nend)() or nil'
+            end
+
+            return result
+        end
+
         local result = 'if (' .. compile_expression(expression.condition) .. ') then\n' ..
             compile_expression(expression['then'], context)
 
@@ -250,8 +259,9 @@ local compile_expression_by_kind = {
         if(context and context.is_returning) then return 'return ' .. expression.value end
         return expression.value
     end,
-    Call = function (expression)
+    Call = function (expression, context)
         local parameters = table.concat(map(expression.arguments, compile_expression), ', ')
+        if(context and context.is_returning) then return 'return ' .. compile_expression(expression.callee) .. '(' .. parameters .. ')' end
         return compile_expression(expression.callee) .. '(' .. parameters .. ')'
     end,
     Str = function (expression, context)
