@@ -102,48 +102,48 @@ function compile_as_iterative_function(expression, context, parameters)
 
 local compile_binary_operators = {
     Lt = function (expression)
-        return compile_expression(expression.lhs) .. '<' .. compile_expression(expression.rhs)
+        return  '( ' .. compile_expression(expression.lhs) .. ' < ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Sub = function (expression)
-        return compile_expression(expression.lhs) .. '-' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' - ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Add = function (expression)
-        local operator = (expression.lhs.kind == 'Str' or expression.rhs.kind == 'Str') and '..' or '+'
+        local operator = (expression.lhs.kind == 'Str' or expression.rhs.kind == 'Str') and ' .. ' or ' + '
         
-        return compile_expression(expression.lhs) .. operator .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. operator .. compile_expression(expression.rhs) .. ' )'
     end,
     Mul = function (expression) 
-        return compile_expression(expression.lhs) .. '*' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' * ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Div = function (expression) 
-        return compile_expression(expression.lhs) .. '/' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' / ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Rem = function (expression) 
         return 'math.fmod(' .. compile_expression(expression.lhs) .. ', ' .. compile_expression(expression.rhs) .. ')'
     end,
     Eq = function (expression) 
-        return compile_expression(expression.lhs) .. '==' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' == ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Neq = function (expression) 
-        return compile_expression(expression.lhs) .. '~=' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' ~= ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Lt = function (expression) 
-        return compile_expression(expression.lhs) .. '<' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' < ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Gt = function (expression) 
-        return compile_expression(expression.lhs) .. '>' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' > ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Lte = function (expression) 
-        return compile_expression(expression.lhs) .. '<=' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' <= ' .. compile_expression(expression.rhs) .. ' )'
     end,
     Gte = function (expression) 
-        return compile_expression(expression.lhs) .. '>=' .. compile_expression(expression.rhs)
+        return '( ' .. compile_expression(expression.lhs) .. ' >= ' .. compile_expression(expression.rhs) .. ' )'
     end,
     And = function (expression) 
-        return compile_expression(expression.lhs) .. 'and' .. compile_expression(expression.rhs)
+        return compile_expression(expression.lhs) .. ' and ' .. compile_expression(expression.rhs)
     end,
     Or = function (expression) 
-        return compile_expression(expression.lhs) .. 'or' .. compile_expression(expression.rhs)
+        return compile_expression(expression.lhs) .. ' or ' .. compile_expression(expression.rhs)
     end,
 }
 
@@ -200,7 +200,7 @@ local compile_expression_by_kind = {
                     )
                 )
             ) ..
-            '\nend\n\n'
+            '\nend\n'
     end,
     Let = function (expression, context)
         local context = context or {}
@@ -217,7 +217,7 @@ local compile_expression_by_kind = {
             result = result .. '\nelse\n' .. compile_expression(expression.otherwise, context)
         end
 
-        return result .. ' \nend'
+        return result .. '\nend'
     end,
     Binary = function (expression, context)
         local result = compile_binary_operators[expression.op](expression)
@@ -287,8 +287,12 @@ local compile_expression_by_kind = {
     Second = function (expression, context)
         return '(' .. compile_expression(expression.value) .. ').second'
     end,
-    Print = function (expression)
-        return 'print(' .. compile_expression(expression.value) .. ')\n'
+    Print = function (expression, context)
+        if(context and context.is_returning) then
+            return 'return print(' .. compile_expression(expression.value) .. ')'
+        end
+
+        return 'print(' .. compile_expression(expression.value) .. ')'
     end,
     Bool = function (expression, context)
         if(context and context.is_returning) then return 'return ' .. tostring(expression.value) end

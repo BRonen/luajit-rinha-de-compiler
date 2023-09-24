@@ -93,23 +93,23 @@ local tests = {
                 "end",
                 "function is_less_than_five(n)",
                 "if(INTERNAL_MEMOIZATION_TABLE[\"is_less_than_five\" .. n]) then return INTERNAL_MEMOIZATION_TABLE[\"is_less_than_five\" .. n] end",
-                "if (n<5) then",
+                "if (( n < 5 )) then",
                 "return true",
                 "else",
-                "return false ",
+                "return false",
                 "end",
                 "end",
                 "function better_is_less_than_five(n)",
                 "if(INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n]) then return INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n] end",
-                "local INTERNAL_MEMOIZED_VALUE = n<5",
+                "local INTERNAL_MEMOIZED_VALUE = ( n < 5 )",
                 "INTERNAL_MEMOIZATION_TABLE[\"better_is_less_than_five\" .. n] = INTERNAL_MEMOIZED_VALUE",
                 "return INTERNAL_MEMOIZED_VALUE",
                 "end",
                 "function print_hello()",
-                "print(\"hello\")",
+                "return print(\"hello\")",
                 "end",
                 "function print_world()",
-                "print(\"world\")",
+                "return print(\"world\")",
                 "end",
                 "local _ = print(id(\"something\"))",
                 "local _ = print(is_less_than_five(4))",
@@ -121,6 +121,38 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/closures.json')
+        local compiled_source = module.compile_script(source_ast)
+
+        return compare_sources(compiled_source, target_source)
+    end,
+    should_generate_nested_ifs_with_binary_operators_precedence = function ()
+        local target_source = sum_tables(
+            default_headers, {
+                "function returning_nested_ifs(x)",
+                "if (( x == 3 and ( 3 <= 2 or ( 2 == ( 4 - ( 4 / ( 2 * 1 ) ) ) or true ) ) )) then",
+                "if (( x == 2 or ( x == 1 ) )) then",
+                "if (( x == 1 )) then",
+                "return print(\"x is 1\")",
+                "else",
+                "return print(\"x is 2\")",
+                "end",
+                "else",
+                "return print(\"x is problably 3\")",
+                "end",
+                "else",
+                "local _ = print(x)",
+                "return x",
+                "end",
+                "end",
+                "local _ = print(returning_nested_ifs(1))",
+                "local _ = print(returning_nested_ifs(2))",
+                "local _ = print(returning_nested_ifs(3))",
+                "local _ = print(returning_nested_ifs(4))",
+                "print(returning_nested_ifs(false))",
+            }
+        )
+
+        local source_ast = get_file_contents('./tests/conditionals.json')
         local compiled_source = module.compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
