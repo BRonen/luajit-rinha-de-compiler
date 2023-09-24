@@ -91,14 +91,14 @@ let fib = fn (n) => {
     result = result + n - 1 + n - 2
   }
 };
-]]
 function compile_as_iterative_function(expression, context, parameters)
     local parameters = parameters or ''
     return 'function ' .. context.name .. ' ( ' .. parameters .. ' )' .. [[
-local result = nil
-local stack = {}
-while(not) ]] .. 'end\n'
-end
+        local result = nil
+        local stack = {}
+        while(not) ] ] .. 'end\n'
+    end
+]]
 
 local compile_binary_operators = {
     Lt = function (expression)
@@ -178,9 +178,11 @@ local compile_expression_by_kind = {
         local memoization_header = ''
         
         if(flags.is_pure) then
-            memoization_header = 'if(call_memoization["' ..
-                context.name .. '" .. ' .. compile_function_parameters(expression.parameters, ' .. "-" .. ') ..
-            ']) then return call_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(expression.parameters, ' .. "-" .. ') .. '] end\n\n'
+            local function_parameters = compile_function_parameters(expression.parameters, ' .. "-" .. ')
+
+            if(#function_parameters ~= 0) then function_parameters = " .. " .. function_parameters end
+
+            memoization_header = 'if(INTERNAL_MEMOIZATION_TABLE["' .. context.name .. '"' .. function_parameters .. ']) then return INTERNAL_MEMOIZATION_TABLE["' .. context.name .. '"' .. function_parameters .. '] end\n\n'
         end
 
         return 'function ' .. context.name .. '(' .. parameters .. ')\n' ..
@@ -220,22 +222,28 @@ local compile_expression_by_kind = {
     Binary = function (expression, context)
         local result = compile_binary_operators[expression.op](expression)
 
-        if(context and context.is_pure and context.is_returning) then
-            return 'local result = ' .. result ..
-                '\ncall_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = result\n' .. 
-                'return result'
-        elseif(context and context.is_returning) then
+        if(context and context.is_returning) then
+            if(context.is_pure) then
+                return 'local INTERNAL_MEMOIZED_VALUE = ' .. result ..
+                    '\nINTERNAL_MEMOIZATION_TABLE["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = INTERNAL_MEMOIZED_VALUE\n' .. 
+                    'return INTERNAL_MEMOIZED_VALUE'
+            end
+
             return 'return ' .. result
         end
         
         return result
     end,
     Var = function (expression, context)
-        if(context and context.is_returning and context.is_pure) then
-            return '\ncall_memoization["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = ' .. expression.text ..
-                '\nreturn ' .. expression.text
+        if(context and context.is_returning) then
+            if(context.is_pure) then
+                return '\nINTERNAL_MEMOIZATION_TABLE["' .. context.name .. '" .. ' .. compile_function_parameters(context.parameters, ' .. "-" .. ') .. '] = ' .. expression.text ..
+                    '\nreturn ' .. expression.text
+            end
+            
+            return 'return ' .. expression.text
         end
-        if(context and context.is_returning) then return 'return ' .. expression.text end
+
         return expression.text
     end,
     Int = function (expression, context)
@@ -251,8 +259,27 @@ local compile_expression_by_kind = {
         return '"' .. expression.value .. '"'
     end,
     Tuple = function (expression, context)
-        if(context and context.is_returning) then return 'return ffi.new("tuple_t", {' .. expression.first .. ', ' .. expression.second .. '})\n' end
-        return 'ffi.new("tuple_t", {' .. compile_expression(expression.first) .. ', ' .. compile_expression(expression.second) .. '})'
+        local result = '{ first = ' .. compile_expression(expression.first) .. ', second = ' .. compile_expression(expression.second) .. ' }'
+
+        if(expression.first.kind == 'Int' and expression.second.kind == 'Int') then
+            result = 'ffi_new("INTERNAL_INTEGER_PAIR", {' .. compile_expression(expression.first) .. ', ' .. compile_expression(expression.second) .. '})'
+        end
+
+        if(context and context.is_returning) then
+            if(context.is_pure) then
+                local function_parameters = compile_function_parameters(context.parameters, ' .. "-" .. ')
+
+                if(#function_parameters ~= 0) then function_parameters = ' .. ' .. function_parameters end
+
+                return 'local INTERNAL_MEMOIZED_VALUE = ' .. result .. '\nINTERNAL_MEMOIZATION_TABLE["'
+                .. context.name .. '"' .. function_parameters
+                .. '] = INTERNAL_MEMOIZED_VALUE\nreturn INTERNAL_MEMOIZED_VALUE\n'
+            end
+            
+            return 'return ' .. result
+        end
+
+        return result
     end,
     First = function (expression, context)
         return '(' .. compile_expression(expression.value) .. ').first'
@@ -279,12 +306,18 @@ function compile_expression (expression, context)
     end
 
     tprint(expression)
-    return '[not implemented] {}'
+    return '[not implemented]'
 end
 
 function compile_script (script, context)
-    return "local ffi = require(\"ffi\")\nlocal call_memoization = {}\nffi.cdef(\"typedef struct { uint32_t first, second; } tuple_t;\")\nlocal print = function (...)\nprint(unpack({...}))\nreturn unpack({...})\nend\n" ..
-        compile_expression(script.expression)
+    return [[
+local ffi = require("ffi")
+local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (...)
+    print(unpack({...}))
+    return unpack({...})
+end
+ffi.cdef("typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;")
+]] .. compile_expression(script.expression)
 end
 
 return {
