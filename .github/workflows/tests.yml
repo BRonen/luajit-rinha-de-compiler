@@ -22,4 +22,4 @@ jobs:
         run: luarocks install lua-cjson
   
       - name: running tests
-        run: luajit test.lua
+        run: lua test.lua
