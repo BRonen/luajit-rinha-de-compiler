@@ -27,7 +27,11 @@ function fib(n)
 end
 
 function fib2(n, a, b)
-    if(n == 0) then return a else return fib2(n - 1, b, a + b) end
+    if(n == 0) then
+        return a
+    else
+        return fib2(n - 1, b, a + b)
+    end
 end
 
 ::test::
