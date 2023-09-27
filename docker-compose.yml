@@ -3,4 +3,4 @@ services:
     build: .
     volumes:
       - ${PWD}:/home
-      - ${PWD}/rinha-de-compiler/files:/var/rinha/
+      - ${PWD}/tests/recursion.json:/var/rinha/source.rinha.json

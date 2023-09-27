@@ -1,5 +1,6 @@
-local new_string_builder = require('./string_builder')
-local tprint = require('./debug')
+local new_string_builder = require('../string_builder')
+local compile_binary_operators = require('./compiler/binary_operators')
+-- local tprint = require('../debug')
 
 function merge_tables (fst, snd)
     local result = {}
@@ -11,20 +12,6 @@ function merge_tables (fst, snd)
     result.is_pure = fst.is_pure and snd.is_pure
 
     return result
-end
-
-function get_file_contents (path)
-    local file = io.open(path, "r")
-    
-    local content = ''
-    
-    for line in io.lines(path) do
-        content = content .. line
-    end
-    
-    file:close()
-    
-    return require("cjson").decode(content);
 end
 
 function check_function_flags(expression, context)
@@ -78,98 +65,6 @@ function compile_as_iterative_function(expression, context, parameters)
         while(not) ] ] .. 'end\n'
     end
 ]]
-
-local compile_binary_operators = {
-    Add = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(
-            (expression.lhs.kind == 'Str' or expression.rhs.kind == 'Str') and ' .. ' or ' + '
-        )
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Sub = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' - ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Mul = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' * ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Div = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' / ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Rem = function (string_builder, expression)
-        string_builder:push('math.fmod( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(', ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Eq = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' == ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Neq = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' ~= ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Lt = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' < ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Gt = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' > ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Lte = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' <= ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    Gte = function (string_builder, expression)
-        string_builder:push('( ')
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' >= ')
-        compile_expression(string_builder, expression.rhs)
-        return string_builder:push(' )')
-    end,
-    And = function (string_builder, expression)
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' and ')
-        compile_expression(string_builder, expression.rhs)
-    end,
-    Or = function (string_builder, expression)
-        compile_expression(string_builder, expression.lhs)
-        string_builder:push(' or ')
-        compile_expression(string_builder, expression.rhs)
-    end
-}
 
 function compile_function_parameters (string_builder, parameters, delimiter, is_concatenating)
     if(is_concatenating and #parameters ~= 0) then string_builder:push(' .. ') end
@@ -474,7 +369,4 @@ ffi.cdef("typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;")
     return string_builder:get()
 end
 
-return {
-    compile_script = compile_script,
-    get_file_contents = get_file_contents,
-}
+return compile_script

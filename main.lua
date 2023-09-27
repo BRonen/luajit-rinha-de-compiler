@@ -1,7 +1,8 @@
-local module = require('./compiler/compile_script')
+local get_file_contents = require('./compiler/get_file_contents')
+local compile_script = require('./compiler/compile_script')
 
-local fib_json = module.get_file_contents('./tests/closures.json')
+local ast_json = get_file_contents('/var/rinha/source.rinha.json')
 
-print(module.compile_script(fib_json))
+-- print(compile_script(ast_json))
 
-loadstring(module.compile_script(fib_json))()
+loadstring(compile_script(ast_json))()

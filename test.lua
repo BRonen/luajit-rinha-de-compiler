@@ -1,4 +1,5 @@
-local module = require('./compiler/compile_script')
+local compile_script = require('./compiler/compile_script')
+local get_file_contents = require('./compiler/get_file_contents')
 
 function sum_tables(a, b)
     local c = {}
@@ -48,7 +49,7 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/print.json')
-        local compiled_source = module.compile_script(source_ast)
+        local compiled_source = compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
     end,
@@ -77,7 +78,7 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/tuples.json')
-        local compiled_source = module.compile_script(source_ast)
+        local compiled_source = compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
     end,
@@ -119,7 +120,7 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/closures.json')
-        local compiled_source = module.compile_script(source_ast)
+        local compiled_source = compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
     end,
@@ -151,7 +152,7 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/conditionals.json')
-        local compiled_source = module.compile_script(source_ast)
+        local compiled_source = compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
     end,
@@ -190,7 +191,7 @@ local tests = {
         )
 
         local source_ast = get_file_contents('./tests/recursion.json')
-        local compiled_source = module.compile_script(source_ast)
+        local compiled_source = compile_script(source_ast)
 
         return compare_sources(compiled_source, target_source)
     end
