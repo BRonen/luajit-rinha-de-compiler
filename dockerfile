@@ -7,4 +7,4 @@ RUN luarocks install lua-cjson
 
 COPY . .
 
-ENTRYPOINT [ "lua", "main.lua" ]
+ENTRYPOINT [ "lua", "test.lua" ]

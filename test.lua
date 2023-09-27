@@ -1,4 +1,4 @@
-local module = require('compile_script')
+local module = require('./compiler/compile_script')
 
 function sum_tables(a, b)
     local c = {}
@@ -19,11 +19,9 @@ function compare_sources(compiled_source, target_source_lines)
     
     for k, target_line in ipairs(target_source_lines) do
         local compiled_line = get_compiled_source_line()
-
-        --print("compiled_line", compiled_line, #compiled_line)
-        --print("target_line", target_line, #target_line)
+        
         if (target_line ~= compiled_line) then
-            print('> error at line ' .. k .. ': ', target_line, compiled_line, #target_line, #compiled_line)
+            print('> error at line ' .. k .. ':\n', target_line,  #target_line, '\n', compiled_line, #compiled_line)
             
             return false, compiled_source, table.concat(target_source_lines, "\n")
         end
@@ -202,10 +200,10 @@ for k, v in pairs(tests) do
     local is_success, compiled_source, target_source = v()
 
     if is_success then
-        print(k .. ' -> Success :)')
+        print(k .. ' -> Success :)\n')
     else
-        print(k .. ' -> Failure :(')
-        print('\tExpected: \n' .. target_source .. '\n\n')
-        print('\tReceived: \n' .. compiled_source .. '\n\n')
+        print('\n', k .. ' -> Failure :(')
+        print('\tExpected: \n' .. target_source .. '\n')
+        print('\tReceived: \n' .. compiled_source .. '\n')
     end
 end

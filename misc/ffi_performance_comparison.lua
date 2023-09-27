@@ -2,6 +2,8 @@ local ffi = require('ffi')
 
 local call_memoization = {}
 
+ffi.cdef("typedef struct { int32_t first, second; } tuple_t;")
+
 local function create_tuple(n, m)
   local tuple = ffi.new("tuple_t")
   tuple.first = n
