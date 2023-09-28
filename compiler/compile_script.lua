@@ -1,6 +1,7 @@
 local new_string_builder = require('../string_builder')
-local compile_binary_operators = require('./compiler/binary_operators')
--- local tprint = require('../debug')
+local compile_recursive_function = require('./compiler/compile_recursive_function')
+local binary_operators_module = require('./compiler/compile_binary_operators')
+local compile_binary_operators, binary_operators = binary_operators_module.compile_binary_operators, binary_operators_module.binary_operators
 
 function merge_tables (fst, snd)
     local result = {}
@@ -8,7 +9,7 @@ function merge_tables (fst, snd)
     for k,v in pairs(fst) do result[k] = v end
     for k,v in pairs(snd) do result[k] = v end
 
-    result.is_recursive = fst.is_recursive or snd.is_recursive
+    result.is_tail_recursive = fst.is_tail_recursive or snd.is_tail_recursive
     result.is_pure = fst.is_pure and snd.is_pure
 
     return result
@@ -23,28 +24,53 @@ function check_function_flags(expression, context)
 
     if(expression.kind == 'If') then
         local flags = merge_tables(
-            check_function_flags(expression['condition'], context),
+            check_function_flags(expression['condition'], merge_tables(context, { is_returning = false })),
             check_function_flags(expression['then'], context)
         )
 
         if(expression.otherwise) then
-            flags = merge_tables(flags, check_function_flags(expression['otherwise'], context))
+            return merge_tables(flags, check_function_flags(expression['otherwise'], context))
         end
 
         return flags
     end
 
     if(expression.kind == 'Binary') then
-        local flags = merge_tables(
-            check_function_flags(expression.lhs, context),
-            check_function_flags(expression.rhs, context)
+        return merge_tables(
+            check_function_flags(
+                expression.lhs,
+                merge_tables(
+                    context,
+                    { is_in_binary_operation = true }
+                )
+            ),
+            check_function_flags(
+                expression.rhs,
+                merge_tables(
+                    context,
+                    { is_in_binary_operation = true }
+                )
+            )
         )
-
-        return flags
     end
-    
-    if(expression.kind == 'Call' and expression.callee.text == context.name) then
-        local flags = { is_recursive = true }
+
+    if(expression.kind == 'Let') then
+        return check_function_flags(
+            expression.value,
+            merge_tables(
+                context,
+                { is_returning = false }
+            )
+        )
+    end
+
+    if(
+        expression.kind == 'Call' and
+        expression.callee.text == context.name and
+        context.is_returning and
+        context.is_in_binary_operation
+    ) then
+        local flags = { is_tail_recursive = true }
 
         for _, argument in ipairs(expression.arguments) do
             flags = merge_tables(flags, check_function_flags(argument, context))
@@ -56,17 +82,9 @@ function check_function_flags(expression, context)
     return check_function_flags(expression.value, context)
 end
 
---[[
-function compile_as_iterative_function(expression, context, parameters)
-    local parameters = parameters or ''
-    return 'function ' .. context.name .. ' ( ' .. parameters .. ' )' .. [[
-        local result = nil
-        local stack = {}
-        while(not) ] ] .. 'end\n'
-    end
-]]
-
 function compile_function_parameters (string_builder, parameters, delimiter, is_concatenating)
+    if(not parameters or #parameters == 0) then return string_builder end
+
     if(is_concatenating and #parameters ~= 0) then string_builder:push(' .. ') end
 
     local delimiter = delimiter or ''
@@ -82,62 +100,86 @@ function compile_function_parameters (string_builder, parameters, delimiter, is_
     return string_builder
 end
 
-local compile_expression_by_kind = {
-    Function = function (string_builder, expression, context)
-        local flags = check_function_flags(expression, context)
+function compile_function(string_builder, expression, context)
+    local parameters = expression.parameters
+    local name = context.name
+
+    local context = merge_tables(
+        context,
+        { parameters = parameters, is_returning = true }
+    )
+
+    local flags = check_function_flags(expression, context)
+    
+    local inner_context = merge_tables(context, flags)
+
+    inner_context.is_pure = flags.is_pure ~= false
+
+    string_builder:push('function ')
+    if(name) then string_builder:push(name) end
+    string_builder:push('(')
+    compile_function_parameters(string_builder, parameters, ', ')
+    string_builder:push(')\n')
+    
+    if(not inner_context.is_tail_recursive and inner_context.is_pure) then
+        string_builder:push('if(INTERNAL_MEMOIZATION_TABLE["')
+        string_builder:push(name)
+        string_builder:push('"')
+
+        compile_function_parameters(string_builder, parameters, ' .. "-" .. ', true)
         
-        local inner_context = merge_tables(
-            context,
-            merge_tables(
-                flags,
-                { parameters = expression.parameters, is_returning = true }
-            )
-        )
+        string_builder:push(']) then return INTERNAL_MEMOIZATION_TABLE["')
+        string_builder:push(name)
+        string_builder:push('"')
 
-        inner_context.is_pure = flags.is_pure ~= false
+        compile_function_parameters(string_builder, parameters, ' .. "-" .. ', true)
 
-        --[[
-            if(is_recursive) then
-                return compile_as_iterative_function(expression, merge_table(context, { is_recursive = true }), parameters)
-            end
--        ]]
+        string_builder:push('] end\n\n')
+    end
 
-        string_builder:push('function ')
-        if(context.name) then string_builder:push(context.name) end
-        string_builder:push('(')
-        compile_function_parameters(string_builder, expression.parameters, ', ')
-        string_builder:push(')\n')
-        
+
+    if(inner_context.is_tail_recursive) then
+        string_builder:push('function INTERNAL_INNER_FUNCTION_')
+        string_builder:push(name)
+        string_builder:push(' (')
+        compile_function_parameters(string_builder, parameters, ', ')
+        string_builder:push(', INTERNAL_CONTINUATION)\n')
+
         if(inner_context.is_pure) then
-            string_builder:push('if(INTERNAL_MEMOIZATION_TABLE["')
-            string_builder:push(context.name)
-            string_builder:push('"')
+            string_builder:push('if(INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
+            string_builder:push(name)
+            string_builder:push('-"')
 
-            compile_function_parameters(string_builder, expression.parameters, ' .. "-" .. ', true)
+            compile_function_parameters(string_builder, parameters, ' .. "-" .. ', true)
             
-            string_builder:push(']) then return INTERNAL_MEMOIZATION_TABLE["')
-            string_builder:push(context.name)
-            string_builder:push('"')
+            string_builder:push(']) then return INTERNAL_CONTINUATION(INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
+            string_builder:push(name)
+            string_builder:push('-"')
 
-            compile_function_parameters(string_builder, expression.parameters, ' .. "-" .. ', true)
+            compile_function_parameters(string_builder, parameters, ' .. "-" .. ', true)
 
-            string_builder:push('] end\n\n')
+            string_builder:push(']) end\n\n')
         end
+    end
+    
+    compile_expression(string_builder, expression.value, inner_context)
 
-        compile_expression(
-            string_builder,
-            expression.value,
-            inner_context
-        )
+    if(inner_context.is_tail_recursive) then
+        string_builder:push({'\nend\nreturn INTERNAL_INNER_FUNCTION_', name, '('})
+        compile_function_parameters(string_builder, parameters, ', ')
+        return string_builder:push(', function(INTERNAL_X) return INTERNAL_X end)\nend\n')
+    end
 
-        return string_builder:push('\nend\n')
-    end,
-    Let = function (string_builder, expression, context)
+    return string_builder:push('\nend\n')
+end
+
+function compile_expression(string_builder, expression, context)
+    if(expression.kind == 'Let') then
         local context = context or {}
 
         if(expression.value.kind == 'Function') then
-            compile_expression(string_builder, expression.value, merge_tables(context, {name = expression.name.text}))
-        else        
+            compile_function(string_builder, expression.value, merge_tables(context, {name = expression.name.text}))
+        else
             string_builder:push('local ')
             string_builder:push(expression.name.text)
             string_builder:push(' = ')
@@ -162,8 +204,7 @@ local compile_expression_by_kind = {
             expression.next,
             context
         )
-    end,
-    If = function (string_builder, expression, context)
+    elseif (expression.kind == 'If') then
         if(context.is_variable) then
             compile_expression(string_builder, expression.condition)
 
@@ -197,12 +238,107 @@ local compile_expression_by_kind = {
         end
 
         return string_builder:push('\nend')
-    end,
-    Binary = function (string_builder, expression, context)
+    elseif (expression.kind == 'Binary') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_INNER_FUNCTION_')
+            string_builder:push(context.name)
+            string_builder:push('(')
+
+            local last_operation = new_string_builder('INTERNAL_CONTINUATION( ')
+
+            function parse_continuations(expr, level)
+                function parse_binary_term(exp)
+                    local buffer = new_string_builder()
+                    
+                    if(exp.kind == 'Call' and exp.callee.text == context.name) then
+                        for i, argument in ipairs(exp.arguments) do
+                            compile_expression(buffer, argument)
+                            
+                            if(i ~= #exp.arguments) then buffer:push(', ') end
+                        end
+                        
+                        return buffer:get()
+                    end
+                    
+                    return compile_expression(buffer, exp, {}):get()
+                end
+
+                if(expr.lhs) then
+                    string_builder:push(parse_binary_term(expr.lhs))
+                else
+                    string_builder:push(parse_binary_term(expr))
+                end
+                
+                if(expr.rhs) then
+                    string_builder:push({
+                        ', function(INTERNAL_CONTINUATION_RESULT_',
+                        level,
+                        ')\n'
+                    })
+                    if(context.is_pure) then
+                        string_builder:push('INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
+                        string_builder:push(context.name)
+                        string_builder:push('-" .. ')
+
+                        string_builder:push(parse_binary_term(expr.lhs))
+
+                        string_builder:push({
+                            '] = ', 'INTERNAL_CONTINUATION_RESULT_', level, '\n'
+                        })
+                    end
+
+                    string_builder:push({
+                        'return INTERNAL_INNER_FUNCTION_',
+                        context.name,
+                        '( '
+                    })
+                    last_operation:push(' INTERNAL_CONTINUATION_RESULT_' .. level)
+                    last_operation:push(' ')
+                    last_operation:push(binary_operators[expr.op])
+                    parse_continuations(expr.rhs, level + 1)
+                end
+                
+                if(not expr.rhs) then
+                    last_operation:push(' INTERNAL_CONTINUATION_RESULT_')
+                    last_operation:push(level)
+                    
+                    string_builder:push({
+                        ', function(INTERNAL_CONTINUATION_RESULT_',
+                        level,
+                        ')\n'
+                    })
+
+                    if(context.is_pure) then
+                        string_builder:push('INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
+                        string_builder:push(context.name)
+                        string_builder:push('-" .. ')
+
+                        string_builder:push(parse_binary_term(expr))
+
+                        string_builder:push({
+                            '] = ', 'INTERNAL_CONTINUATION_RESULT_', level, '\n'
+                        })
+                    end
+
+                    string_builder:push({
+                        'return ',
+                        last_operation:get(),
+                        '\n) end'
+                    })
+
+                    return string_builder:push(' ) end )')
+                end
+
+                return 
+            end
+
+            return parse_continuations(expression, 1)
+        end
+
         if(context and context.is_returning and context.is_pure) then
             string_builder:push('local INTERNAL_MEMOIZED_VALUE = ')
 
-            compile_binary_operators[expression.op](string_builder, expression)
+            compile_binary_operators[expression.op](string_builder, expression, compile_expression)
 
             string_builder:push('\nINTERNAL_MEMOIZATION_TABLE["')
             string_builder:push(context.name)
@@ -217,12 +353,12 @@ local compile_expression_by_kind = {
             string_builder:push('\nreturn ')
         end
         
-        return compile_binary_operators[expression.op](string_builder, expression)
-    end,
-    Var = function (string_builder, expression, context)
-        if(context) then
-            --string_builder:push({tostring(context.is_returning), tostring(context.is_pure)})
+        return compile_binary_operators[expression.op](string_builder, expression, compile_expression)
+    elseif (expression.kind == 'Var') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            return string_builder:push({'\nreturn INTERNAL_CONTINUATION(', expression.text, ')'})
         end
+
         if(context and context.is_returning) then
             if(context.is_pure) then                
                 string_builder:push('\nINTERNAL_MEMOIZATION_TABLE["')
@@ -239,13 +375,15 @@ local compile_expression_by_kind = {
         end
 
         return string_builder:push(expression.text)
-    end,
-    Int = function (string_builder, expression, context)
+    elseif (expression.kind == 'Int') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            return string_builder:push({'\nreturn INTERNAL_CONTINUATION(', expression.value, ')'})
+        end
+
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         return string_builder:push(expression.value)
-    end,
-    Call = function (string_builder, expression, context)
+    elseif (expression.kind == 'Call') then
         if(context and context.is_pure and context.is_returning) then
             string_builder:push('return ')
 
@@ -275,19 +413,31 @@ local compile_expression_by_kind = {
         end
 
         return string_builder:push(')')
-    end,
-    Str = function (string_builder, expression, context)
+    elseif (expression.kind == 'Str') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            return string_builder:push({'\nreturn INTERNAL_CONTINUATION(', expression.value, ')'})
+        end
+
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         return string_builder:push({'"', expression.value, '"'})
-    end,
-    Tuple = function (string_builder, expression, context)
+    elseif (expression.kind == 'Tuple') then
         local begin, middle, final = '{ first = ', ', second = ', ' }'
 
         if(expression.first.kind == 'Int' and expression.second.kind == 'Int') then
             begin, middle, final = 'ffi_new("INTERNAL_INTEGER_PAIR", {', ', ', '})'
         end
         
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_CONTINUATION(')
+            string_builder:push(begin)
+            compile_expression(string_builder, expression.first)
+            string_builder:push(middle)
+            compile_expression(string_builder, expression.second)
+            string_builder:push(final)
+            string_builder:push(')')
+        end
+
         if(context and context.is_returning) then
             if(context.is_pure) then
                 string_builder:push('local INTERNAL_MEMOIZED_VALUE = ')
@@ -317,48 +467,66 @@ local compile_expression_by_kind = {
         string_builder:push(middle)
         compile_expression(string_builder, expression.second)
         string_builder:push(final)
-    end,
-    First = function (string_builder, expression, context)
+    elseif (expression.kind == 'First') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_CONTINUATION( (')
+            compile_expression(string_builder, expression.value)
+            returnstring_builder:push(').first )')
+        end
+
+        if(context and context.is_returning) then string_builder:push('\nreturn ') end
+
         string_builder:push('(')
         compile_expression(string_builder, expression.value)
         string_builder:push(').first')
-    end,
-    Second = function (string_builder, expression, context)
+    elseif (expression.kind == 'Second') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_CONTINUATION( (')
+            compile_expression(string_builder, expression.value)
+            returnstring_builder:push(').second )')
+        end
+
+        if(context and context.is_returning) then string_builder:push('\nreturn ') end
+        
         string_builder:push('(')
         compile_expression(string_builder, expression.value)
         string_builder:push(').second')
-    end,
-    Print = function (string_builder, expression, context)
+    elseif (expression.kind == 'Print') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_CONTINUATION( print(')
+            compile_expression(string_builder, expression.value)
+            return string_builder:push(') )')
+        end
+
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         string_builder:push('print(')
         compile_expression(string_builder, expression.value)
         string_builder:push(')')
-    end,
-    Bool = function (string_builder, expression, context)
+    elseif (expression.kind == 'Bool') then
+        if(context and context.is_returning and context.is_tail_recursive) then
+            string_builder:push('\nreturn INTERNAL_CONTINUATION( ')
+            string_builder:push(tostring(expression.value))
+            return string_builder:push(' )')
+        end
+
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         return string_builder:push(tostring(expression.value))
     end
-}
-
-function compile_expression (string_builder, expression, context)
-    local compiler_by_kind = compile_expression_by_kind[expression.kind]
-
-    if (compiler_by_kind) then
-        return compiler_by_kind(string_builder, expression, context)
-    end
-
-    return string_builder:push('[not implemented]')
 end
 
 function compile_script (script)
     local string_builder = new_string_builder(
 [[
 local ffi = require("ffi")
-local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (...)
-    print(unpack({...}))
-    return unpack({...})
+local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (value)
+    if(type(value) == 'Function') then
+        print('<#Closure>')
+    else
+        print(value)
+    end
+    return value
 end
 ffi.cdef("typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;")
 ]]

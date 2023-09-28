@@ -1,3 +1,9 @@
+--[[
+local run_tests = require('./test')
+
+run_tests()
+]]
+
 local get_file_contents = require('./compiler/get_file_contents')
 local compile_script = require('./compiler/compile_script')
 

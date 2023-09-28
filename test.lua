@@ -33,9 +33,13 @@ end
 
 local default_headers = {
     "local ffi = require(\"ffi\")",
-    "local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (...)",
-    "    print(unpack({...}))",
-    "    return unpack({...})",
+    "local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (value)",
+    "    if(type(value) == 'Function') then",
+    "        print('<#Closure>')",
+    "    else",
+    "        print(value)",
+    "    end",
+    "    return value",
     "end",
     "ffi.cdef(\"typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;\")",
 }
@@ -159,34 +163,45 @@ local tests = {
     should_run_conditionals_as_expressions = function ()
         local target_source = sum_tables(
             default_headers, {
-                "function rec(n, acc)",
-                "if(INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc]) then return INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] end",
-                "if (( acc == n )) then",
-                "INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] = acc",
-                "return acc",
-                "else",
-                "local INTERNAL_MEMOIZED_VALUE = ( rec(n, ( acc + 1 )) + 0 )",
-                "INTERNAL_MEMOIZATION_TABLE[\"rec\" .. n .. \"-\" .. acc] = INTERNAL_MEMOIZED_VALUE",
-                "return INTERNAL_MEMOIZED_VALUE",
-                "end",
-                "end",
-                "function rec_tail_call(n, acc)",
-                "if(INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc]) then return INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc] end",
-                "if (( acc == n )) then",
-                "INTERNAL_MEMOIZATION_TABLE[\"rec_tail_call\" .. n .. \"-\" .. acc] = acc",
-                "return acc",
-                "else",
-                "return rec_tail_call(n, ( acc + 1 ))",
-                "end",
-                "end",
-                "local a = ( 123 == ( 124 - 1 ) ) and (function()",
-                "local _ = print(123)",
-                "return true",
-                "end)() or (function()",
-                "return false",
-                "end)()",
-                "local _ = print(rec_tail_call(40000, 0))",
-                "print(a)",
+                'function rec(n, acc)',
+                'if(INTERNAL_MEMOIZATION_TABLE["rec" .. n .. "-" .. acc]) then return INTERNAL_MEMOIZATION_TABLE["rec" .. n .. "-" .. acc] end',
+                'if (( acc == n )) then',
+                'INTERNAL_MEMOIZATION_TABLE["rec" .. n .. "-" .. acc] = acc',
+                'return acc',
+                'else',
+                'return rec(n, ( acc + 1 ))',
+                'end',
+                'end',
+                'function rec_tail_call(n, acc)',
+                'if (( print(acc) == n )) then',
+                'return acc',
+                'else',
+                'return rec_tail_call(n, ( acc + 1 ))',
+                'end',
+                'end',
+                'function fib(n)',
+                'function INTERNAL_INNER_FUNCTION_fib (n, INTERNAL_CONTINUATION)',
+                'if(INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_fib-" .. n]) then return INTERNAL_CONTINUATION(INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_fib-" .. n]) end',
+                'if (( n < 2 )) then',
+                'return INTERNAL_CONTINUATION(n)',
+                'else',
+                'return INTERNAL_INNER_FUNCTION_fib(( n - 1 ), function(INTERNAL_CONTINUATION_RESULT_1)',
+                'INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_fib-" .. ( n - 1 )] = INTERNAL_CONTINUATION_RESULT_1',
+                'return INTERNAL_INNER_FUNCTION_fib( ( n - 2 ), function(INTERNAL_CONTINUATION_RESULT_2)',
+                'INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_fib-" .. ( n - 2 )] = INTERNAL_CONTINUATION_RESULT_2',
+                'return INTERNAL_CONTINUATION(  INTERNAL_CONTINUATION_RESULT_1 + INTERNAL_CONTINUATION_RESULT_2',
+                ') end ) end )',
+                'end',
+                'end',
+                'return INTERNAL_INNER_FUNCTION_fib(n, function(INTERNAL_X) return INTERNAL_X end)',
+                'end',
+                'local a = ( 123 == ( 124 - 1 ) ) and (function()',
+                'local _ = print(123)',
+                'return true',
+                'end)() or (function()',
+                'return false',
+                'end)()',
+                'print(fib(36))'
             }
         )
 
@@ -197,14 +212,18 @@ local tests = {
     end
 }
 
-for k, v in pairs(tests) do
-    local is_success, compiled_source, target_source = v()
+function run()
+    for k, v in pairs(tests) do
+        local is_success, compiled_source, target_source = v()
 
-    if is_success then
-        print(k .. ' -> Success :)\n')
-    else
-        print('\n', k .. ' -> Failure :(')
-        print('\tExpected: \n' .. target_source .. '\n')
-        print('\tReceived: \n' .. compiled_source .. '\n')
+        if is_success then
+            print(k .. ' -> Success :)\n')
+        else
+            print('\n', k .. ' -> Failure :(')
+            print('\tExpected: \n' .. target_source .. '\n')
+            print('\tReceived: \n' .. compiled_source .. '\n')
+        end
     end
 end
+
+return run

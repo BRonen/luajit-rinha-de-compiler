@@ -22,7 +22,7 @@ function fib(n)
     if(n <= 2) then
         return 1
     else
-        return fib(n - 1) + fib(n - 2) + 2 end
+        return fib(n - 1) + fib(n - 2) end
     end
 end
 
@@ -37,7 +37,6 @@ end
 ::test::
 print('a')
 goto test
-]]
 
 --print(fib2(100000, 0, 1))
 --print(trampoline(fib(30)))
@@ -45,19 +44,19 @@ goto test
 local memoization = {}
 
 function fib(n)
-    local inner = function(n, cont)
+    function inner(n, cont)
         if(n < 2) then
             return cont(n)
         else
             if(memoization[n]) then
                 return cont(memoization[n])
             end
-    
-            return fib(
+            
+            return inner(
                 n - 1,
                 function(a)
                     memoization[n - 1] = a
-                    return fib(
+                    return inner(
                         n - 2,
                         function(b)
                             memoization[n - 2] = b
@@ -77,7 +76,48 @@ function fib(n)
     )
 end
 
-print(fib(55))
+inner(
+    55,
+    function(c)
+        return c
+    end
+)
+print('a', fib(55))
 
-local a = function(b, c) return b + c end
-local b = function(c, d) return c + d end
+]]
+
+local print = function (value)
+    if(type(value) == 'Function') then
+        print('<#Closure>')
+    else
+        print(value)
+    end
+
+    return value
+end
+
+function fib(n)
+    function INTERNAL_INNER_FUNCTION_fib (n, INTERNAL_CONTINUATION)
+        if (( n < 2 )) then
+            return INTERNAL_CONTINUATION( print(n) )
+        else
+            return INTERNAL_INNER_FUNCTION_fib(
+                ( n - 1 ),
+                function(INTERNAL_CONTINUATION_RESULT_1)
+                    return INTERNAL_INNER_FUNCTION_fib(
+                        ( n - 2 ),
+                        function(INTERNAL_CONTINUATION_RESULT_2)
+                            return INTERNAL_CONTINUATION(
+                                INTERNAL_CONTINUATION_RESULT_1 + INTERNAL_CONTINUATION_RESULT_2
+                            )
+                        end
+                    )
+                end
+            )
+        end
+    end
+    
+    return INTERNAL_INNER_FUNCTION_fib(n, function(INTERNAL_X) return print(INTERNAL_X) end)
+end
+
+fib(260000000)
