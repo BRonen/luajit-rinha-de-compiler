@@ -41,14 +41,14 @@ function check_function_flags(expression, context)
                 expression.lhs,
                 merge_tables(
                     context,
-                    { is_in_binary_operation = true }
+                    { is_in_binary_operation = true, is_variable = true }
                 )
             ),
             check_function_flags(
                 expression.rhs,
                 merge_tables(
                     context,
-                    { is_in_binary_operation = true }
+                    { is_in_binary_operation = true, is_variable = true }
                 )
             )
         )
@@ -214,7 +214,7 @@ function compile_expression(string_builder, expression, context)
         )
     elseif (expression.kind == 'If') then
         if(context.is_variable) then
-            compile_expression(string_builder, expression.condition)
+            compile_expression(string_builder, expression.condition, {is_variable = true})
 
             string_builder:push(' and (function()\n')
 
@@ -233,7 +233,7 @@ function compile_expression(string_builder, expression, context)
 
         string_builder:push('if (')
         
-        compile_expression(string_builder, expression.condition)
+        compile_expression(string_builder, expression.condition, {is_variable = true})
 
         string_builder:push(') then\n')
 
@@ -288,7 +288,7 @@ function compile_expression(string_builder, expression, context)
                 if(expr.kind == 'Call' and expr.callee.text == context.name) then
                     
                     for i, argument in ipairs(expr.arguments) do
-                        compile_expression(string_builder, argument, {})
+                        compile_expression(string_builder, argument, {is_variable = true})
                         
                         if(i ~= #expr.arguments) then string_builder:push(', ') end
                     end
@@ -303,7 +303,7 @@ function compile_expression(string_builder, expression, context)
 
                         for i, argument in ipairs(expr.arguments) do
                             string_builder:push('tostring(')
-                            compile_expression(string_builder, argument, {})
+                            compile_expression(string_builder, argument, {is_variable = true})
                             string_builder:push(')')
                             
                             if(i ~= #expr.arguments) then string_builder:push(' .. ') end
@@ -386,11 +386,11 @@ function compile_expression(string_builder, expression, context)
         if(context and context.is_pure and context.is_returning) then
             string_builder:push('return ')
 
-            compile_expression(string_builder, expression.callee)
+            compile_expression(string_builder, expression.callee, {is_variable = true})
             string_builder:push('(')
     
             for i, argument in ipairs(expression.arguments) do
-                compile_expression(string_builder, argument)
+                compile_expression(string_builder, argument, {is_variable = true})
     
                 if(i ~= #expression.arguments) then string_builder:push(', ') end
             end
@@ -402,11 +402,11 @@ function compile_expression(string_builder, expression, context)
             string_builder:push('\nreturn ')
         end
 
-        compile_expression(string_builder, expression.callee)
+        compile_expression(string_builder, expression.callee, {is_variable = true})
         string_builder:push('(')
 
         for i, argument in ipairs(expression.arguments) do
-            compile_expression(string_builder, argument)
+            compile_expression(string_builder, argument, {is_variable = true})
 
             if(i ~= #expression.arguments) then string_builder:push(', ') end
         end
@@ -442,11 +442,11 @@ function compile_expression(string_builder, expression, context)
                 string_builder:push('local INTERNAL_MEMOIZED_VALUE = ')
                 string_builder:push(begin)
 
-                compile_expression(string_builder, expression.first)
+                compile_expression(string_builder, expression.first, {is_variable = true})
 
                 string_builder:push(middle)
 
-                compile_expression(string_builder, expression.second)
+                compile_expression(string_builder, expression.second, {is_variable = true})
 
                 string_builder:push(final)
                 string_builder:push('\nINTERNAL_MEMOIZATION_TABLE["')
@@ -462,26 +462,26 @@ function compile_expression(string_builder, expression, context)
             string_builder:push('\nreturn ')
         end
         string_builder:push(begin)
-        compile_expression(string_builder, expression.first)
+        compile_expression(string_builder, expression.first, {is_variable = true})
         string_builder:push(middle)
-        compile_expression(string_builder, expression.second)
+        compile_expression(string_builder, expression.second, {is_variable = true})
         string_builder:push(final)
     elseif (expression.kind == 'First') then
         if(context and context.is_returning and context.is_tail_recursive) then
             string_builder:push('\nreturn INTERNAL_CONTINUATION( (')
-            compile_expression(string_builder, expression.value)
+            compile_expression(string_builder, expression.value, {is_variable = true})
             returnstring_builder:push(').first )')
         end
 
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         string_builder:push('(')
-        compile_expression(string_builder, expression.value)
+        compile_expression(string_builder, expression.value, {is_variable = true})
         string_builder:push(').first')
     elseif (expression.kind == 'Second') then
         if(context and context.is_returning and context.is_tail_recursive) then
             string_builder:push('\nreturn INTERNAL_CONTINUATION( (')
-            compile_expression(string_builder, expression.value)
+            compile_expression(string_builder, expression.value, {is_variable = true})
             returnstring_builder:push(').second )')
         end
 
@@ -493,7 +493,7 @@ function compile_expression(string_builder, expression, context)
     elseif (expression.kind == 'Print') then
         if(context and context.is_returning and context.is_tail_recursive) then
             string_builder:push('\nreturn INTERNAL_CONTINUATION( print(')
-            compile_expression(string_builder, expression.value, {})
+            compile_expression(string_builder, expression.value, {is_variable = true})
             return string_builder:push(') )')
         end
 
