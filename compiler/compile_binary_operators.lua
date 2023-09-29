@@ -1,12 +1,8 @@
-local tprint = require('./debug')
-
 local compile_binary_operators = {
     Add = function (string_builder, expression, compile_term)
-        string_builder:push('( ')
+        string_builder:push('INTERNAL_GLOBAL_ADD_OPERATOR( ')
         compile_term(string_builder, expression.lhs)
-        string_builder:push(
-            (expression.lhs.kind == 'Str' or expression.rhs.kind == 'Str') and ' .. ' or ' + '
-        )
+        string_builder:push(', ')
         compile_term(string_builder, expression.rhs)
         return string_builder:push(' )')
     end,
@@ -93,18 +89,19 @@ local compile_binary_operators = {
 }
 
 local binary_operators = {
-    Add = '+',
-    Sub = '-',
-    Mul = '*',
-    Div = '/',
-    Eq = '==',
-    Neq = '~=',
-    Lt = '<',
-    Gt = '>',
-    Lte = '<=',
-    Gte = '>=',
-    And = 'and',
-    Or = 'or'
+    Add = {'INTERNAL_GLOBAL_ADD_OPERATOR(', ', ', ')'},
+    Sub = {'(', '-', ')'},
+    Mul = {'(', '*', ')'},
+    Div = {'(', '/', ')'},
+    Rem = {'math.fmod(', ', ', ')'},
+    Eq = {'(', '==', ')'},
+    Neq = {'(', '~=', ')'},
+    Lt = {'(', '<', ')'},
+    Gt = {'(', '>', ')'},
+    Lte = {'(', '<=', ')'},
+    Gte = {'(', '>=', ')'},
+    And = {'', 'and', ''},
+    Or = {'', 'or', ''}
 }
 
 function build_binary_operators (string_builder, operator, left, right, compile_term)

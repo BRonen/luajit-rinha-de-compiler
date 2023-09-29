@@ -3,4 +3,9 @@ services:
     build: .
     volumes:
       - ${PWD}:/home
-      - ${PWD}/tests/recursion.json:/var/rinha/source.rinha.json
+      - ${PWD}/tests/cps.json:/var/rinha/source.rinha.json
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2048M

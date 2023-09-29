@@ -90,7 +90,15 @@ function compile_function_parameters (string_builder, parameters, delimiter, is_
     local delimiter = delimiter or ''
     
     for k, v in ipairs(parameters) do
+        if(is_concatenating) then
+            string_builder:push("tostring(")
+        end
+
         string_builder:push(v.text)
+        
+        if(is_concatenating) then
+            string_builder:push(")")
+        end        
         
         if (k ~= #parameters) then
             string_builder:push(delimiter)
@@ -239,100 +247,91 @@ function compile_expression(string_builder, expression, context)
 
         return string_builder:push('\nend')
     elseif (expression.kind == 'Binary') then
-        if(context and context.is_returning and context.is_tail_recursive) then
-            string_builder:push('\nreturn INTERNAL_INNER_FUNCTION_')
-            string_builder:push(context.name)
-            string_builder:push('(')
+        if(context and context.is_returning and context.is_tail_recursive ) then
+            local last_operation = new_string_builder('return INTERNAL_CONTINUATION( ')
 
-            local last_operation = new_string_builder('INTERNAL_CONTINUATION( ')
+            local close_number = 0
 
-            function parse_continuations(expr, level)
-                function parse_binary_term(exp)
-                    local buffer = new_string_builder()
+            function parse_binary_term(expr, level)
+                if(not expr) then return end
+
+                if(expr.kind == 'Binary') then
+                    if(expr.lhs.kind == 'Call' and expr.lhs.callee.text == context.name) then
+                        string_builder:push('\nreturn ')
+                        string_builder:push('INTERNAL_INNER_FUNCTION_')
+                        string_builder:push(context.name)
+                        string_builder:push('(')
+                        close_number = close_number + 1
+                    end
+
+                    local operator_tokens = binary_operators[expr.op]
+                    last_operation:push(operator_tokens[1])
+
+                    parse_binary_term(expr.lhs, level * 1000)
+
+                    last_operation:push(operator_tokens[2])
+
+                    if(expr.rhs.kind == 'Call' and expr.rhs.callee.text == context.name) then
+                        string_builder:push('\nreturn ')
+                        string_builder:push('INTERNAL_INNER_FUNCTION_')
+                        string_builder:push(context.name)
+                        string_builder:push('(')
+                        close_number = close_number + 1
+                    end
+
+                    parse_binary_term(expr.rhs, level + 1)
                     
-                    if(exp.kind == 'Call' and exp.callee.text == context.name) then
-                        for i, argument in ipairs(exp.arguments) do
-                            compile_expression(buffer, argument)
-                            
-                            if(i ~= #exp.arguments) then buffer:push(', ') end
-                        end
+                    last_operation:push(operator_tokens[3])
+
+                    return
+                end
+                if(expr.kind == 'Call' and expr.callee.text == context.name) then
+                    
+                    for i, argument in ipairs(expr.arguments) do
+                        compile_expression(string_builder, argument, {})
                         
-                        return buffer:get()
+                        if(i ~= #expr.arguments) then string_builder:push(', ') end
                     end
-                    
-                    return compile_expression(buffer, exp, {}):get()
-                end
+                    string_builder:push({', function(INTERNAL_CONTINUATION_RESULT_', level, ')\n'})
 
-                if(expr.lhs) then
-                    string_builder:push(parse_binary_term(expr.lhs))
-                else
-                    string_builder:push(parse_binary_term(expr))
-                end
-                
-                if(expr.rhs) then
-                    string_builder:push({
-                        ', function(INTERNAL_CONTINUATION_RESULT_',
-                        level,
-                        ')\n'
-                    })
+                    last_operation:push({' INTERNAL_CONTINUATION_RESULT_', level, ' '})
+                        
                     if(context.is_pure) then
                         string_builder:push('INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
                         string_builder:push(context.name)
                         string_builder:push('-" .. ')
 
-                        string_builder:push(parse_binary_term(expr.lhs))
+                        for i, argument in ipairs(expr.arguments) do
+                            string_builder:push('tostring(')
+                            compile_expression(string_builder, argument, {})
+                            string_builder:push(')')
+                            
+                            if(i ~= #expr.arguments) then string_builder:push(' .. ') end
+                        end
 
                         string_builder:push({
                             '] = ', 'INTERNAL_CONTINUATION_RESULT_', level, '\n'
                         })
                     end
 
-                    string_builder:push({
-                        'return INTERNAL_INNER_FUNCTION_',
-                        context.name,
-                        '( '
-                    })
-                    last_operation:push(' INTERNAL_CONTINUATION_RESULT_' .. level)
-                    last_operation:push(' ')
-                    last_operation:push(binary_operators[expr.op])
-                    parse_continuations(expr.rhs, level + 1)
-                end
-                
-                if(not expr.rhs) then
-                    last_operation:push(' INTERNAL_CONTINUATION_RESULT_')
-                    last_operation:push(level)
-                    
-                    string_builder:push({
-                        ', function(INTERNAL_CONTINUATION_RESULT_',
-                        level,
-                        ')\n'
-                    })
-
-                    if(context.is_pure) then
-                        string_builder:push('INTERNAL_MEMOIZATION_TABLE["INTERNAL_INNER_FUNCTION_')
-                        string_builder:push(context.name)
-                        string_builder:push('-" .. ')
-
-                        string_builder:push(parse_binary_term(expr))
-
-                        string_builder:push({
-                            '] = ', 'INTERNAL_CONTINUATION_RESULT_', level, '\n'
-                        })
-                    end
-
-                    string_builder:push({
-                        'return ',
-                        last_operation:get(),
-                        '\n) end'
-                    })
-
-                    return string_builder:push(' ) end )')
+                    return 
                 end
 
-                return 
+                compile_expression(last_operation, expr, {})
             end
 
-            return parse_continuations(expression, 1)
+            parse_binary_term(expression, 1)
+
+            string_builder:push({
+                last_operation:get(),
+                ')\n'
+            })
+            
+            for i=1,close_number do
+                string_builder:push('end)')
+            end
+
+            return
         end
 
         if(context and context.is_returning and context.is_pure) then
@@ -494,14 +493,14 @@ function compile_expression(string_builder, expression, context)
     elseif (expression.kind == 'Print') then
         if(context and context.is_returning and context.is_tail_recursive) then
             string_builder:push('\nreturn INTERNAL_CONTINUATION( print(')
-            compile_expression(string_builder, expression.value)
+            compile_expression(string_builder, expression.value, {})
             return string_builder:push(') )')
         end
 
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         string_builder:push('print(')
-        compile_expression(string_builder, expression.value)
+        compile_expression(string_builder, expression.value, {is_variable = true})
         string_builder:push(')')
     elseif (expression.kind == 'Bool') then
         if(context and context.is_returning and context.is_tail_recursive) then
@@ -520,13 +519,18 @@ function compile_script (script)
     local string_builder = new_string_builder(
 [[
 local ffi = require("ffi")
-local ffi_new, INTERNAL_MEMOIZATION_TABLE, print = ffi.new, {}, function (value)
+local ffi_new, INTERNAL_MEMOIZATION_TABLE, print, INTERNAL_GLOBAL_ADD_OPERATOR = ffi.new, {}, function (value)
     if(type(value) == 'Function') then
         print('<#Closure>')
     else
         print(value)
     end
     return value
+end, function (x, y)
+    if(type(x) ~= "number" or type(y) ~= "number") then
+        return x .. y
+    end
+    return x + y
 end
 ffi.cdef("typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;")
 ]]
