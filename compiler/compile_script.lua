@@ -512,6 +512,12 @@ function compile_expression(string_builder, expression, context)
         if(context and context.is_returning) then string_builder:push('\nreturn ') end
 
         return string_builder:push(tostring(expression.value))
+    elseif(expression.kind == 'Function') then
+        string_builder:push('function (')
+        compile_function_parameters(string_builder, expression.parameters, ', ')
+        string_builder:push(')\n')
+        compile_expression(string_builder, expression.value, { is_returning = true })
+        string_builder:push('\nend')
     end
 end
 
@@ -536,7 +542,7 @@ ffi.cdef("typedef struct { int32_t first, second; } INTERNAL_INTEGER_PAIR;")
 ]]
     )
 
-    compile_expression(string_builder, script.expression, {})
+    compile_expression(string_builder, script.expression, {is_returning = true})
 
     return string_builder:get()
 end

@@ -3,7 +3,7 @@ services:
     build: .
     volumes:
       - ${PWD}:/home
-      - ${PWD}/tests/test7.json:/var/rinha/source.rinha.json
+      - ${PWD}/tests/test8.json:/var/rinha/source.rinha.json
     deploy:
       resources:
         limits:
